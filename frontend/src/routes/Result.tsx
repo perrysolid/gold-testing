@@ -2,7 +2,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import ConfidenceBar from "../components/ConfidenceBar";
-import EvidenceTile from "../components/EvidenceTile";
 import { api } from "../lib/api";
 
 type AssessmentResult = {
