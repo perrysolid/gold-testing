@@ -1,0 +1,12 @@
+{
+  "name": "Aurum — Gold Assessment",
+  "short_name": "Aurum",
+  "description": "AI-powered remote gold jewellery assessment for NBFC lending",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FBF7EE",
+  "theme_color": "#D4AF37",
+  "icons": [
+    { "src": "/gold-icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any maskable" }
+  ]
+}

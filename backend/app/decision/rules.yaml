@@ -1,0 +1,34 @@
+version: "1.0"
+
+thresholds:
+  pre_approve:
+    min_purity_confidence: 0.75
+    min_weight_confidence: 0.70
+    max_risk_score: 0.30
+  reject:
+    max_risk_score: 0.75
+    fatal_flags:
+      - FAKE_HALLMARK_DETECTED
+      - PLATED_HIGH_CONFIDENCE
+      - DUPLICATE_SUBMISSION
+      - HIGH_RISK
+
+purity_weights:
+  hallmark_ocr: 0.55
+  color_analysis: 0.15
+  audio_tap: 0.20
+  self_report: 0.10
+
+weight_model:
+  method: lightgbm
+  fallback_rule: "area*thickness_proxy*density(karat)"
+
+ltv:
+  small_ticket_max_inr: 250000
+  small_ticket_rate: 0.85
+  default_rate: 0.75
+  rbi_benchmark_karat: 22
+
+explainability:
+  max_bullets: 5
+  min_evidence_per_bullet: 1

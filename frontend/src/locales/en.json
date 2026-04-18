@@ -1,0 +1,30 @@
+{
+  "home": {
+    "tagline": "AI-powered gold assessment for smarter lending",
+    "start": "Check My Gold",
+    "demo": "Try demo (no camera needed)"
+  },
+  "capture": {
+    "title": "Capture Your Jewellery",
+    "step_top": "Top view",
+    "step_side": "Side view",
+    "step_hallmark": "Hallmark close-up",
+    "quality_bright": "Brightness",
+    "quality_sharp": "Sharp",
+    "quality_frame": "In frame",
+    "quality_scale": "Scale detected"
+  },
+  "audio": {
+    "title": "Optional Tap Test",
+    "instruction": "Tap your jewellery gently against a hard surface and record 3 seconds of sound.",
+    "skip": "Skip"
+  },
+  "result": {
+    "weight": "Estimated Weight",
+    "purity": "Estimated Purity",
+    "risk": "Risk",
+    "why": "Why we said this",
+    "loan": "Maximum Loan",
+    "pdf": "Download Pre-Approval Letter"
+  }
+}

@@ -1,0 +1,114 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "aurum-backend"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+core = [
+    # API framework
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.32.1",
+    "python-multipart==0.0.20",
+
+    # Data validation
+    "pydantic==2.10.3",
+    "pydantic-settings==2.7.0",
+
+    # Database
+    "sqlmodel==0.0.22",
+    "aiosqlite==0.20.0",
+    "asyncpg==0.30.0",
+
+    # Auth
+    "python-jose[cryptography]==3.3.0",
+    "passlib[bcrypt]==1.7.4",
+
+    # HTTP client
+    "httpx==0.27.2",
+
+    # Storage (MinIO/S3)
+    "boto3==1.35.72",
+    "aiofiles==24.1.0",
+
+    # Observability
+    "structlog==24.4.0",
+    "prometheus-client==0.21.1",
+
+    # Config
+    "python-dotenv==1.0.1",
+
+    # YAML
+    "pyyaml==6.0.2",
+
+    # PDF generation
+    "weasyprint==62.3",
+
+    # Image dedup
+    "imagededup==0.3.2",
+]
+
+ml = [
+    # Computer vision
+    "opencv-python-headless==4.10.0.84",
+    "ultralytics==8.3.52",
+    "Pillow==11.0.0",
+    "numpy==2.1.3",
+
+    # Depth estimation (MiDaS via timm)
+    "timm==1.0.12",
+    "torch==2.5.1",
+    "torchvision==0.20.1",
+
+    # Audio
+    "librosa==0.10.2.post1",
+    "soundfile==0.12.1",
+
+    # ML
+    "lightgbm==4.5.0",
+    "scikit-learn==1.5.2",
+    "scipy==1.14.1",
+
+    # Gemini
+    "google-genai==1.5.0",
+
+    # OCR (PaddleOCR — CPU)
+    # Note: install paddlepaddle separately; paddleocr depends on it
+    # pip install paddlepaddle==2.6.2 paddleocr==2.9.1
+    # Listed here for documentation; excluded from auto-install due to size
+]
+
+dev = [
+    "pytest==8.3.4",
+    "pytest-asyncio==0.24.0",
+    "httpx==0.27.2",
+    "pytest-watch==4.2.0",
+    "ruff==0.8.6",
+    "mypy==1.13.0",
+    "types-pyyaml==6.0.12.20240917",
+    "types-aiofiles==24.1.0.20240626",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
