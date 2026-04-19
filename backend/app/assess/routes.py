@@ -172,15 +172,75 @@ async def download_pdf(
 async def list_assessments(
     session: AsyncSession = Depends(get_session),
 ) -> list[dict]:
-    """FR-10.1: Lender dashboard list."""
-    results = await session.exec(select(Assessment).order_by(Assessment.created_at.desc()))  # type: ignore[arg-type]
-    return [
-        {
+    """FR-10.1: Lender dashboard list with decision join."""
+    import json as _json
+    assessments = (await session.exec(
+        select(Assessment).order_by(Assessment.created_at.desc())  # type: ignore[arg-type]
+    )).all()
+
+    # Batch-load decisions
+    ids = [a.id for a in assessments]
+    dec_rows = (await session.exec(select(Decision).where(Decision.assessment_id.in_(ids)))).all()  # type: ignore[attr-defined]
+    dec_by_id = {d.assessment_id: d for d in dec_rows}
+
+    rows = []
+    for a in assessments:
+        d = dec_by_id.get(a.id)
+        rationale = _json.loads(d.rationale_json) if d and d.rationale_json else {}
+        rows.append({
             "id": a.id,
             "status": a.status,
             "decision": a.decision,
             "item_type": a.item_type,
             "created_at": a.created_at.isoformat(),
-        }
-        for a in results.all()
-    ]
+            "max_loan_inr": d.max_loan_inr if d else None,
+            "purity_confidence": rationale.get("purity", {}).get("confidence"),
+            "weight_confidence": rationale.get("weight_g", {}).get("confidence"),
+            "risk_score": rationale.get("authenticity_risk", {}).get("score"),
+            "flags": rationale.get("flags", []),
+        })
+    return rows
+
+
+@router.get("/export.csv")
+async def export_csv(
+    session: AsyncSession = Depends(get_session),
+) -> Response:
+    """FR-10.2: CSV export for lender dashboard."""
+    import csv, io as _io, json as _json
+    assessments = (await session.exec(
+        select(Assessment).order_by(Assessment.created_at.desc())  # type: ignore[arg-type]
+    )).all()
+    ids = [a.id for a in assessments]
+    dec_rows = (await session.exec(select(Decision).where(Decision.assessment_id.in_(ids)))).all()  # type: ignore[attr-defined]
+    dec_by_id = {d.assessment_id: d for d in dec_rows}
+
+    buf = _io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([
+        "assessment_id", "item_type", "decision", "status",
+        "max_loan_inr", "purity_karat", "purity_confidence",
+        "weight_low_g", "weight_high_g", "weight_confidence",
+        "risk_score", "risk_level", "flags", "created_at",
+    ])
+    for a in assessments:
+        d = dec_by_id.get(a.id)
+        r = _json.loads(d.rationale_json) if d and d.rationale_json else {}
+        purity = r.get("purity", {})
+        weight = r.get("weight_g", {})
+        risk   = r.get("authenticity_risk", {})
+        writer.writerow([
+            a.id, a.item_type, a.decision or "", a.status,
+            d.max_loan_inr if d else "",
+            purity.get("karat_low", ""), purity.get("confidence", ""),
+            weight.get("low", ""), weight.get("high", ""), weight.get("confidence", ""),
+            risk.get("score", ""), risk.get("level", ""),
+            "|".join(r.get("flags", [])),
+            a.created_at.isoformat(),
+        ])
+
+    return Response(
+        content=buf.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=aurum_assessments.csv"},
+    )
