@@ -59,7 +59,7 @@ class Settings(BaseSettings):
     midas_model_type: str = "MiDaS_small"
     weight_model: str = "models/weight_lgbm.pkl"
     purity_model: str = "models/purity_rf.pkl"
-    audio_classifier_model: str = "models/audio_cls.pkl"
+    audio_clf_model: str = "models/audio_clf.pkl"
     clip_model: str = "openai/clip-vit-base-patch32"
 
 
