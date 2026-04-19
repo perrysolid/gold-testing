@@ -75,13 +75,14 @@ def estimate_weight(
     if lgbm is not None:
         try:
             import numpy as np
+            karat_keys = list(DENSITY.keys())
             feats = np.array([[
                 float(seg_ev.payload.get("mask_area_px", 0)) if seg_ev else 0,
                 float(depth_ev.payload.get("thickness_mm", 2.5)) if depth_ev else 2.5,
                 float(DENSITY.get(purity_karat, 17.7)),
-                list(DENSITY.keys()).index(purity_karat) if purity_karat in DENSITY else 1,
+                float(karat_keys.index(purity_karat) if purity_karat in karat_keys else 1),
             ]])
-            pred = lgbm.predict(feats)
+            pred = lgbm.predict(feats)  # native booster predict
             band_factor = max(float(pred[0]), 0.10)
             base_conf = min(base_conf + 0.1, 0.85)
             method = "lightgbm"

@@ -49,26 +49,11 @@ async def run_pipeline(assessment_id: str, request: AssessmentRequest) -> None:
         # ── Vision pipeline (FR-5) ────────────────────────────────────────────
         vision_evidence = []
         if image_bytes_list:
-            from app.vision.classifier import classify_type
-            from app.vision.segmenter import segment
-            from app.vision.scale import detect_scale
-            from app.vision.hallmark_detector import detect_hallmark
-            from app.vision.hallmark_ocr import ocr_hallmark
-            from app.vision.plating_detector import detect_plating
-            from app.vision.depth import estimate_depth
-
-            primary = image_bytes_list[0]
-            hallmark_img = image_bytes_list[-1]  # last image = closest to hallmark shot
-
-            type_ev = await classify_type(primary)
-            seg_ev = await segment(primary, type_ev)
-            scale_ev = await detect_scale(primary)
-            hallmark_ev = await detect_hallmark(hallmark_img)
-            ocr_ev = await ocr_hallmark(hallmark_img, hallmark_ev)
-            plating_ev = await detect_plating(primary, seg_ev)
-            depth_ev = await estimate_depth(primary, scale_ev)
-
-            vision_evidence = [type_ev, seg_ev, scale_ev, hallmark_ev, ocr_ev, plating_ev, depth_ev]
+            from app.vision.pipeline import run_vision
+            vision_evidence = await run_vision(
+                image_bytes_list,
+                declared_type=request.item_declared.type,
+            )
             log.info("pipeline.vision_done", evidence_count=len(vision_evidence))
         else:
             log.warning("pipeline.no_images", fallback="fusing from self-report only")
@@ -80,11 +65,20 @@ async def run_pipeline(assessment_id: str, request: AssessmentRequest) -> None:
             audio_evidence = await extract_features(audio_bytes)
             log.info("pipeline.audio_done", class_=audio_evidence.payload.get("class") if audio_evidence else None)
 
+        # ── FR-8.2: Multi-view consistency (async, before sync fuse()) ────────
+        multiview_consistency = 1.0
+        if len(image_bytes_list) > 1:
+            from app.fraud.multiview_consistency import check_consistency
+            multiview_consistency = await check_consistency(image_bytes_list)
+            log.debug("pipeline.consistency", score=multiview_consistency)
+
         # ── Fusion (FR-7.1) ───────────────────────────────────────────────────
         fusion: FusionResult = fuse(
             request=request,
             vision_evidence=vision_evidence,
             audio_evidence=audio_evidence,
+            image_bytes_list=image_bytes_list or None,
+            multiview_consistency=multiview_consistency,
         )
 
         # ── Decision (FR-7.4) ─────────────────────────────────────────────────
