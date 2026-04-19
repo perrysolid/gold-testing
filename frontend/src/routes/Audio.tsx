@@ -17,6 +17,20 @@ export default function Audio() {
   const chunksRef = useRef<Blob[]>([]);
   const animRef = useRef<number>(0);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (ev.target?.result instanceof ArrayBuffer) {
+        setAudio(new Uint8Array(ev.target.result));
+        setState("done");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
 
   const startRecording = async () => {
     try {
@@ -146,7 +160,27 @@ export default function Audio() {
         </button>
       )}
       {state === "idle" && (
-        <p className="text-brown/40 text-xs">{t("audio.record")}</p>
+        <div className="flex flex-col items-center gap-4">
+          <p className="text-brown/40 text-xs">{t("audio.record")}</p>
+          <div className="flex items-center gap-2 text-brown/20">
+            <div className="h-px w-8 bg-current" />
+            <span className="text-[10px] uppercase tracking-widest">{t("common.or")}</span>
+            <div className="h-px w-8 bg-current" />
+          </div>
+          <input
+            type="file"
+            accept="audio/*"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="min-touch px-6 py-2.5 border border-brown/20 rounded-xl text-brown/60 text-sm font-medium hover:bg-brown/5 transition-colors"
+          >
+            📁 {t("audio.upload")}
+          </button>
+        </div>
       )}
 
       {/* Demo sample audio buttons */}

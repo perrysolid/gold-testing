@@ -45,6 +45,7 @@
     "instruction": "Tap your jewellery gently against a hard surface and record 3 seconds of sound.",
     "skip": "Skip",
     "record": "Start Recording",
+    "upload": "Upload audio file",
     "stop": "Stop",
     "recording": "Recording…",
     "analysing": "Analysing sound…",
