@@ -90,12 +90,12 @@ DEMO_DECISIONS = [
 
 
 async def seed() -> None:
-    from app.db.models import create_db_and_tables, Assessment, Decision, get_session
+    from app.db.models import create_db_and_tables, Assessment, Decision, session_ctx
     from sqlmodel import select
 
     await create_db_and_tables()
 
-    async with get_session() as session:  # type: ignore[attr-defined]
+    async with session_ctx() as session:
         for demo in DEMO_DECISIONS:
             existing = await session.exec(select(Assessment).where(Assessment.id == demo["id"]))
             if existing.first():

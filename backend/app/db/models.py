@@ -29,6 +29,16 @@ def _get_engine() -> AsyncEngine:
 
 
 async def get_session() -> AsyncSession:  # type: ignore[misc]
+    """FastAPI dependency — yields a session."""
+    async with AsyncSession(_get_engine()) as session:
+        yield session
+
+
+from contextlib import asynccontextmanager  # noqa: E402
+
+@asynccontextmanager
+async def session_ctx():
+    """Async context manager for use outside FastAPI dependency injection."""
     async with AsyncSession(_get_engine()) as session:
         yield session
 
