@@ -38,6 +38,20 @@ REQUEST_LATENCY = Histogram(
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("aurum.startup", version="0.1.0", env=settings.object_store)
     await create_db_and_tables()
+
+    # Pre-warm ML models in background to avoid Latency-on-First-Call (LOFC)
+    # This prevents the initial 30-70s delay during the first assessment
+    try:
+        from app.vision.depth import _load_midas
+        from app.vision.segmenter import _load_sam2
+        from app.vision.classifier import _load_yolo
+        _load_midas()
+        _load_sam2()
+        _load_yolo()
+        logger.info("aurum.models_preloaded")
+    except Exception as e:
+        logger.warning("aurum.preloading_failed", error=str(e))
+
     yield
     logger.info("aurum.shutdown")
 

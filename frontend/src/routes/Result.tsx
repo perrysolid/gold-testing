@@ -162,7 +162,7 @@ export default function Result() {
     // Give backend 35 seconds before showing demo fallback
     const timeoutHandle = setTimeout(() => {
       if (!stopped) { stopped = true; clearInterval(labelTimer); setTimedOut(true); }
-    }, 35_000);
+    }, 120_000);
     const poll = async () => {
       while (!stopped) {
         try {

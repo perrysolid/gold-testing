@@ -28,7 +28,7 @@ core = [
     "passlib[bcrypt]==1.7.4",
 
     # HTTP client
-    "httpx==0.27.2",
+    "httpx>=0.27.2",
 
     # Storage (MinIO/S3)
     "boto3==1.35.72",
@@ -57,7 +57,7 @@ ml = [
     "opencv-python-headless==4.10.0.84",
     "ultralytics==8.3.52",
     "Pillow==11.0.0",
-    "numpy==2.1.3",
+    "numpy>=1.23.5, <2.0.0",
 
     # Depth estimation (MiDaS via timm)
     "timm==1.0.12",
@@ -85,7 +85,7 @@ ml = [
 dev = [
     "pytest==8.3.4",
     "pytest-asyncio==0.24.0",
-    "httpx==0.27.2",
+    "httpx>=0.27.2",
     "pytest-watch==4.2.0",
     "ruff==0.8.6",
     "mypy==1.13.0",
