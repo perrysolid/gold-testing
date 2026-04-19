@@ -7,10 +7,15 @@ import Review from "./routes/Review";
 import Result from "./routes/Result";
 import Lender from "./routes/Lender";
 import About from "./routes/About";
+import LanguagePicker from "./components/LanguagePicker";
 
 export default function App() {
   return (
     <BrowserRouter>
+      {/* Persistent floating language toggle — top-right on every screen */}
+      <div className="fixed top-3 right-3 z-50">
+        <LanguagePicker />
+      </div>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/onboarding" element={<Onboarding />} />

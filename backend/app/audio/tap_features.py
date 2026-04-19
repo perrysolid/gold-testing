@@ -58,10 +58,12 @@ async def extract_features(audio_bytes: bytes) -> Optional[EvidenceItem]:
         y, sr = librosa.load(io.BytesIO(audio_bytes), sr=TARGET_SR, mono=True)
 
         # FR-3.2: quality gate
+        # Browser WebAudio recordings are often lower amplitude than -50 dB,
+        # so use a more lenient gate (-62 dB lower bound, -1 dB upper).
         rms_db = float(20 * np.log10(np.sqrt(np.mean(y ** 2)) + 1e-9))
-        if rms_db < -50:
+        if rms_db < -62:
             return _insufficient("too_quiet", rms_db)
-        if rms_db > -3:
+        if rms_db > -1:
             return _insufficient("clipping", rms_db)
 
         onset_frames = librosa.onset.onset_detect(y=y, sr=sr, units="samples")

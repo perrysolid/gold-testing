@@ -4,9 +4,14 @@ POST /assess/start                → assessment_id + upload URLs
 POST /assess/upload/{id}/{kind}   → multipart artifact upload
 POST /assess/quality-check        → server-side image quality check (FR-2.4)
 POST /assess/submit               → triggers ML pipeline
-GET  /assess/{id}                 → poll for result (status + decision + fusion)
 GET  /assess/                     → lender list (FR-10.1)
+GET  /assess/export.csv           → CSV export (FR-10.2)
+GET  /assess/{id}                 → poll for result (status + decision + fusion)
 GET  /assess/{id}/pdf             → pre-approval PDF (FR-11.3)
+
+NOTE: Specific literal GET routes (/  and /export.csv) must be declared
+BEFORE the parameterised GET /{assessment_id} route, otherwise FastAPI's
+router will match the literal paths with the parameterised handler first.
 """
 from __future__ import annotations
 
@@ -92,81 +97,7 @@ async def submit_assessment(
     return {"assessment_id": body.assessment_id, "status": "processing"}
 
 
-@router.get("/{assessment_id}", response_model=dict)
-async def get_assessment(
-    assessment_id: str,
-    session: AsyncSession = Depends(get_session),
-) -> dict:
-    """FR-9.1: Poll for result. Returns full rationale once done."""
-    result = await session.exec(select(Assessment).where(Assessment.id == assessment_id))
-    assessment = result.first()
-    if not assessment:
-        raise HTTPException(status_code=404, detail="Assessment not found")
-
-    payload: dict = {
-        "assessment_id": assessment_id,
-        "status": assessment.status,
-        "decision": assessment.decision,
-        "item_type": assessment.item_type,
-    }
-
-    if assessment.status == "done":
-        dec_result = await session.exec(select(Decision).where(Decision.assessment_id == assessment_id))
-        dec = dec_result.first()
-        if dec:
-            rationale = json.loads(dec.rationale_json) if dec.rationale_json else {}
-            payload.update({
-                "max_loan_inr": dec.max_loan_inr,
-                "explanation_md": dec.explanation_md,
-                "why": dec.explanation_md.splitlines() if dec.explanation_md else [],
-                "headline": rationale.get("headline", ""),
-                "weight_g": rationale.get("weight_g"),
-                "purity": rationale.get("purity"),
-                "authenticity_risk": rationale.get("authenticity_risk"),
-                "flags": rationale.get("flags", []),
-                "evidence": rationale.get("evidence", []),
-                "next_steps_md": rationale.get("next_steps_md", ""),
-            })
-
-    return payload
-
-
-@router.get("/{assessment_id}/pdf")
-async def download_pdf(
-    assessment_id: str,
-    session: AsyncSession = Depends(get_session),
-) -> Response:
-    """FR-11.3: Generate and stream pre-approval PDF."""
-    from app.assess.schemas import DecisionResult, GoldPriceSnapshot
-    from app.services.pdf import generate_pre_approval_pdf
-    from datetime import datetime, timezone
-
-    result = await session.exec(select(Assessment).where(Assessment.id == assessment_id))
-    assessment = result.first()
-    if not assessment or assessment.status != "done":
-        raise HTTPException(status_code=404, detail="Assessment not ready")
-
-    dec_result = await session.exec(select(Decision).where(Decision.assessment_id == assessment_id))
-    dec = dec_result.first()
-    if not dec:
-        raise HTTPException(status_code=404, detail="Decision not found")
-
-    rationale = json.loads(dec.rationale_json) if dec.rationale_json else {}
-    dr = DecisionResult(
-        assessment_id=assessment_id,
-        decision=dec.decision,
-        headline=rationale.get("headline", dec.decision),
-        max_loan_inr=dec.max_loan_inr,
-        why=dec.explanation_md.splitlines() if dec.explanation_md else [],
-        next_steps_md=rationale.get("next_steps_md", ""),
-    )
-    pdf_bytes = await generate_pre_approval_pdf(dr)
-    return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=aurum_{assessment_id[:8]}.pdf"},
-    )
-
+# ── Lender list — must come BEFORE /{assessment_id} ──────────────────────────
 
 @router.get("/", response_model=list[dict])
 async def list_assessments(
@@ -178,7 +109,6 @@ async def list_assessments(
         select(Assessment).order_by(Assessment.created_at.desc())  # type: ignore[arg-type]
     )).all()
 
-    # Batch-load decisions
     ids = [a.id for a in assessments]
     dec_rows = (await session.exec(select(Decision).where(Decision.assessment_id.in_(ids)))).all()  # type: ignore[attr-defined]
     dec_by_id = {d.assessment_id: d for d in dec_rows}
@@ -243,4 +173,83 @@ async def export_csv(
         content=buf.getvalue(),
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=aurum_assessments.csv"},
+    )
+
+
+# ── Parameterised routes — after all literal routes ───────────────────────────
+
+@router.get("/{assessment_id}", response_model=dict)
+async def get_assessment(
+    assessment_id: str,
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """FR-9.1: Poll for result. Returns full rationale once done."""
+    result = await session.exec(select(Assessment).where(Assessment.id == assessment_id))
+    assessment = result.first()
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
+    payload: dict = {
+        "assessment_id": assessment_id,
+        "status": assessment.status,
+        "decision": assessment.decision,
+        "item_type": assessment.item_type,
+    }
+
+    if assessment.status == "done":
+        dec_result = await session.exec(select(Decision).where(Decision.assessment_id == assessment_id))
+        dec = dec_result.first()
+        if dec:
+            rationale = json.loads(dec.rationale_json) if dec.rationale_json else {}
+            payload.update({
+                "max_loan_inr": dec.max_loan_inr,
+                "explanation_md": dec.explanation_md,
+                "why": dec.explanation_md.splitlines() if dec.explanation_md else [],
+                "headline": rationale.get("headline", ""),
+                "weight_g": rationale.get("weight_g"),
+                "purity": rationale.get("purity"),
+                "authenticity_risk": rationale.get("authenticity_risk"),
+                "flags": rationale.get("flags", []),
+                "evidence": rationale.get("evidence", []),
+                "next_steps_md": rationale.get("next_steps_md", ""),
+                "ltv_applied": rationale.get("ltv_applied"),
+            })
+
+    return payload
+
+
+@router.get("/{assessment_id}/pdf")
+async def download_pdf(
+    assessment_id: str,
+    session: AsyncSession = Depends(get_session),
+) -> Response:
+    """FR-11.3: Generate and stream pre-approval PDF."""
+    from app.assess.schemas import DecisionResult, GoldPriceSnapshot
+    from app.services.pdf import generate_pre_approval_pdf
+    from datetime import datetime, timezone
+
+    result = await session.exec(select(Assessment).where(Assessment.id == assessment_id))
+    assessment = result.first()
+    if not assessment or assessment.status != "done":
+        raise HTTPException(status_code=404, detail="Assessment not ready")
+
+    dec_result = await session.exec(select(Decision).where(Decision.assessment_id == assessment_id))
+    dec = dec_result.first()
+    if not dec:
+        raise HTTPException(status_code=404, detail="Decision not found")
+
+    rationale = json.loads(dec.rationale_json) if dec.rationale_json else {}
+    dr = DecisionResult(
+        assessment_id=assessment_id,
+        decision=dec.decision,
+        headline=rationale.get("headline", dec.decision),
+        max_loan_inr=dec.max_loan_inr,
+        why=dec.explanation_md.splitlines() if dec.explanation_md else [],
+        next_steps_md=rationale.get("next_steps_md", ""),
+    )
+    pdf_bytes = await generate_pre_approval_pdf(dr)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=aurum_{assessment_id[:8]}.pdf"},
     )

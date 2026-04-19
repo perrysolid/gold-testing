@@ -2,7 +2,26 @@
   "home": {
     "tagline": "AI-powered gold assessment for smarter lending",
     "start": "Check My Gold",
-    "demo": "Try demo (no camera needed)"
+    "demo": "Try demo (no camera needed)",
+    "what": "What are you bringing?",
+    "dashboard": "NBFC Dashboard",
+    "how": "How It Works",
+    "how_step1": "Photograph your jewellery",
+    "how_step2": "AI checks hallmark & purity",
+    "how_step3": "Get your loan estimate"
+  },
+  "onboarding": {
+    "enter_mobile": "Enter your mobile number",
+    "send_otp": "Send OTP",
+    "enter_otp": "Enter OTP",
+    "resend": "Resend OTP",
+    "kyc_title": "Quick KYC",
+    "name_label": "Full name",
+    "pan_label": "PAN number",
+    "consent_title": "Declaration",
+    "consent_body": "I confirm that the jewellery belongs to me and all information provided is accurate.",
+    "consent_agree": "I agree",
+    "continue": "Continue"
   },
   "capture": {
     "title": "Capture Your Jewellery",
@@ -12,19 +31,96 @@
     "quality_bright": "Brightness",
     "quality_sharp": "Sharp",
     "quality_frame": "In frame",
-    "quality_scale": "Scale detected"
+    "quality_scale": "Scale detected",
+    "tip_top": "Place on white paper, good light",
+    "tip_side": "Show thickness clearly",
+    "tip_hallmark": "Zoom in on the BIS stamp",
+    "retake": "Retake",
+    "next": "Next",
+    "submit": "Submit for Assessment",
+    "analysing": "Analysing quality…"
   },
   "audio": {
     "title": "Optional Tap Test",
     "instruction": "Tap your jewellery gently against a hard surface and record 3 seconds of sound.",
-    "skip": "Skip"
+    "skip": "Skip",
+    "record": "Start Recording",
+    "stop": "Stop",
+    "recording": "Recording…",
+    "analysing": "Analysing sound…",
+    "result_solid": "Solid metal detected",
+    "result_hollow": "May be hollow",
+    "result_plated": "Possible plating"
+  },
+  "review": {
+    "title": "Review & Submit",
+    "item_type": "Item type",
+    "images": "Photos",
+    "audio": "Tap test",
+    "audio_yes": "Recorded",
+    "audio_no": "Skipped",
+    "edit": "Edit",
+    "submit": "Submit Assessment",
+    "submitting": "Submitting…",
+    "disclaimer": "Submitting will trigger AI analysis. Results are preliminary only."
   },
   "result": {
     "weight": "Estimated Weight",
     "purity": "Estimated Purity",
-    "risk": "Risk",
+    "risk": "Authenticity Risk",
     "why": "Why we said this",
     "loan": "Maximum Loan",
-    "pdf": "Download Pre-Approval Letter"
+    "pdf": "Download Pre-Approval Letter (PDF)",
+    "share": "Share this result",
+    "copied": "Link copied!",
+    "new": "Start New Assessment",
+    "dashboard": "NBFC Dashboard",
+    "confidence": "{{pct}}% confidence",
+    "ltv_note": "at {{pct}}% LTV · RBI Gold Loan Directions 2025",
+    "flags": "Signal Flags",
+    "next_steps": "Next Steps",
+    "error_title": "Assessment failed",
+    "error_body": "The pipeline encountered an error. Please try again or visit a branch.",
+    "go_home": "Go Home",
+    "disclaimer": "This is a preliminary estimate only. Final valuation requires physical inspection at your nearest branch. Valid 14 days from assessment date."
+  },
+  "lender": {
+    "title": "NBFC Dashboard",
+    "subtitle": "Gold loan pre-assessment queue",
+    "back": "← App",
+    "export": "Export CSV",
+    "total": "Total",
+    "approved": "Pre-Approved",
+    "needs_verify": "Needs Verify",
+    "rejected": "Rejected",
+    "today": "{{n}} today",
+    "pipeline": "₹{{amount}} pipeline",
+    "pending_branch": "pending branch",
+    "not_eligible": "not eligible",
+    "filter_all": "All",
+    "col_type": "Type",
+    "col_decision": "Decision",
+    "col_risk": "Risk",
+    "col_purity": "Purity conf.",
+    "col_loan": "Loan",
+    "col_flags": "Flags",
+    "col_created": "Created",
+    "loading": "Loading assessments…",
+    "empty": "No assessments yet.",
+    "disclaimer": "All assessments are preliminary. Final valuation requires branch inspection per RBI Gold Loan Directions 2025."
+  },
+  "items": {
+    "ring": "Ring",
+    "chain": "Chain",
+    "bangle": "Bangle",
+    "earring": "Earring",
+    "pendant": "Pendant",
+    "coin": "Coin"
+  },
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "or": "or"
   }
 }

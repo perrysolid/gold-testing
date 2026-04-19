@@ -11,7 +11,7 @@ echo "→ Downloading model weights to $MODELS_DIR"
 # ── YOLOv8n base (AGPL-3.0 — cite Ultralytics) ───────────────────────────────
 # Used as backbone for jewelry classifier; fine-tune with our dataset
 if [ ! -f "$MODELS_DIR/yolov8n.pt" ]; then
-  python -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
+    python3 -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
   mv ~/.config/Ultralytics/yolov8n.pt "$MODELS_DIR/" 2>/dev/null || \
     echo "  yolov8n.pt already in models/ or check ultralytics cache"
 fi

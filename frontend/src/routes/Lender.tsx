@@ -1,6 +1,7 @@
 // FR-10.1 / FR-10.2: NBFC dashboard — live assessment queue, analytics, CSV export
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 
 const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
@@ -41,6 +42,7 @@ type Filter = "ALL" | "PRE_APPROVE" | "NEEDS_VERIFICATION" | "REJECT";
 
 export default function Lender() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("ALL");
@@ -67,11 +69,18 @@ export default function Lender() {
   };
 
   const tiles = [
-    { label: "Total",        value: rows.length,         sub: `${todayRows.length} today` },
-    { label: "Pre-Approved", value: approved.length,     sub: `₹${(totalLoan / 1_00_000).toFixed(1)}L pipeline` },
-    { label: "Needs Verify", value: needsVerify.length,  sub: "pending branch" },
-    { label: "Rejected",     value: rejected.length,     sub: "not eligible" },
+    { label: t("lender.total"),        value: rows.length,         sub: t("lender.today", { n: todayRows.length }) },
+    { label: t("lender.approved"),     value: approved.length,     sub: t("lender.pipeline", { amount: `${(totalLoan / 1_00_000).toFixed(1)}L` }) },
+    { label: t("lender.needs_verify"), value: needsVerify.length,  sub: t("lender.pending_branch") },
+    { label: t("lender.rejected"),     value: rejected.length,     sub: t("lender.not_eligible") },
   ];
+
+  const filterLabels: Record<Filter, string> = {
+    ALL: t("lender.filter_all"),
+    PRE_APPROVE: t("lender.approved"),
+    NEEDS_VERIFICATION: t("lender.needs_verify"),
+    REJECT: t("lender.rejected"),
+  };
 
   return (
     <div className="min-h-screen bg-ivory">
@@ -80,32 +89,32 @@ export default function Lender() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-headline text-brown">NBFC Dashboard</h1>
-            <p className="text-xs text-brown/40 mt-0.5">Gold loan pre-assessment queue</p>
+            <h1 className="text-2xl font-headline text-brown">{t("lender.title")}</h1>
+            <p className="text-xs text-brown/40 mt-0.5">{t("lender.subtitle")}</p>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => navigate("/")}
               className="text-xs text-brown/40 border border-brown/15 rounded-lg px-3 py-1.5 hover:border-brown/30 transition-colors"
             >
-              ← App
+              {t("lender.back")}
             </button>
             <button
               onClick={handleCsvExport}
               className="text-xs text-brown/60 border border-brown/20 rounded-lg px-3 py-1.5 hover:border-gold hover:text-gold transition-colors"
             >
-              Export CSV
+              {t("lender.export")}
             </button>
           </div>
         </div>
 
         {/* Analytics tiles */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {tiles.map((t) => (
-            <div key={t.label} className="rounded-xl bg-white shadow-sm p-4 text-center">
-              <p className="text-2xl font-bold text-brown">{loading ? "—" : t.value}</p>
-              <p className="text-xs font-medium text-brown/60 mt-0.5">{t.label}</p>
-              <p className="text-xs text-brown/30 mt-0.5">{loading ? "" : t.sub}</p>
+          {tiles.map((tile) => (
+            <div key={tile.label} className="rounded-xl bg-white shadow-sm p-4 text-center">
+              <p className="text-2xl font-bold text-brown">{loading ? "—" : tile.value}</p>
+              <p className="text-xs font-medium text-brown/60 mt-0.5">{tile.label}</p>
+              <p className="text-xs text-brown/30 mt-0.5">{loading ? "" : tile.sub}</p>
             </div>
           ))}
         </div>
@@ -122,7 +131,7 @@ export default function Lender() {
                   : "border-brown/15 text-brown/50 hover:border-brown/30"
               }`}
             >
-              {f === "ALL" ? "All" : f.replace("_", " ")}
+              {filterLabels[f]}
             </button>
           ))}
         </div>
@@ -130,20 +139,20 @@ export default function Lender() {
         {/* Table */}
         <div className="rounded-xl bg-white shadow-sm overflow-x-auto">
           {loading ? (
-            <div className="p-12 text-center text-brown/30 text-sm">Loading assessments…</div>
+            <div className="p-12 text-center text-brown/30 text-sm">{t("lender.loading")}</div>
           ) : visible.length === 0 ? (
-            <div className="p-12 text-center text-brown/30 text-sm">No assessments yet.</div>
+            <div className="p-12 text-center text-brown/30 text-sm">{t("lender.empty")}</div>
           ) : (
             <table className="w-full text-sm min-w-[640px]">
               <thead className="bg-brown/5 text-brown/50 text-xs uppercase tracking-wide">
                 <tr>
-                  <th className="p-3 text-left">Type</th>
-                  <th className="p-3 text-left">Decision</th>
-                  <th className="p-3 text-left">Risk</th>
-                  <th className="p-3 text-left">Purity conf.</th>
-                  <th className="p-3 text-left">Loan</th>
-                  <th className="p-3 text-left">Flags</th>
-                  <th className="p-3 text-left">Created</th>
+                  <th className="p-3 text-left">{t("lender.col_type")}</th>
+                  <th className="p-3 text-left">{t("lender.col_decision")}</th>
+                  <th className="p-3 text-left">{t("lender.col_risk")}</th>
+                  <th className="p-3 text-left">{t("lender.col_purity")}</th>
+                  <th className="p-3 text-left">{t("lender.col_loan")}</th>
+                  <th className="p-3 text-left">{t("lender.col_flags")}</th>
+                  <th className="p-3 text-left">{t("lender.col_created")}</th>
                   <th className="p-3" />
                 </tr>
               </thead>
@@ -209,7 +218,7 @@ export default function Lender() {
         </div>
 
         <p className="text-xs text-brown/20 text-center">
-          All assessments are preliminary. Final valuation requires branch inspection per RBI Gold Loan Directions 2025.
+          {t("lender.disclaimer")}
         </p>
       </div>
     </div>
