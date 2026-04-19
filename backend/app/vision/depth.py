@@ -22,6 +22,11 @@ def _load_midas() -> tuple[Optional[object], Optional[object]]:
     global _midas, _transform
     if _midas is None:
         try:
+            import psutil
+            # Skip MiDaS if available RAM < 3 GB — falls back to 2D area heuristic
+            if psutil.virtual_memory().available / (1024 ** 3) < 3.0:
+                logger.warning("midas.skipped_low_memory", fallback="2d_heuristic")
+                return None, None
             import torch
             import timm  # type: ignore[import]
             from app.config import get_settings

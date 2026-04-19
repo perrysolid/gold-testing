@@ -19,7 +19,12 @@ _sam2 = None
 def _load_sam2() -> object:
     global _sam2
     if _sam2 is None:
-        import os
+        import os, psutil
+        # Skip SAM2 if available RAM < 4 GB to prevent OOM crash on demo machines
+        avail_gb = psutil.virtual_memory().available / (1024 ** 3)
+        if avail_gb < 4.0:
+            logger.warning("sam2.skipped_low_memory", available_gb=round(avail_gb, 1), fallback="grabcut")
+            return None
         from app.config import get_settings
         cfg, ckpt = get_settings().sam2_config, get_settings().sam2_checkpoint
         if os.path.exists(ckpt):

@@ -4,6 +4,10 @@ Priority:
   1. Fine-tuned YOLOv8-cls model (when weights file exists)
   2. Gemini 2.5 Flash vision sanity check (§13.2) — best zero-shot accuracy
   3. Declared type from request (honest fallback at 0.4 confidence)
+
+Non-jewellery gate: if the classifier concludes non_jewellery with
+confidence ≥ NON_JEWELLERY_THRESHOLD the caller should reject the
+assessment rather than continuing with fabricated evidence.
 """
 from __future__ import annotations
 
@@ -17,17 +21,21 @@ from app.assess.schemas import EvidenceItem
 logger = structlog.get_logger()
 
 CLASSES = ["ring", "chain", "bangle", "earring", "pendant", "coin", "bar", "non_jewellery"]
+NON_JEWELLERY_THRESHOLD = 0.55   # confidence above this → reject assessment
 
-# §13.2 Gemini prompt
-_GEMINI_CLASSIFY_PROMPT = """Analyse this image of a piece of jewellery. Return JSON only:
+# §13.2 Gemini prompt — use "non_jewellery" consistently with CLASSES list
+_GEMINI_CLASSIFY_PROMPT = """Analyse this image. Return JSON only:
 {
-  "item_type": "ring|chain|bangle|earring|pendant|coin|bar|not_jewellery|unknown",
+  "item_type": "ring|chain|bangle|earring|pendant|coin|bar|non_jewellery|unknown",
   "apparent_karat_guess": "14K|18K|20K|22K|24K|unknown",
   "visual_flags": ["even_color","uneven_color","visible_scratches","worn_plating",
                    "greenish_tint","brassy_tint","hollow_looking","solid_looking"],
   "confidence": 0.0,
   "reasoning": "1-2 sentences"
-}"""
+}
+Use "non_jewellery" if the image does NOT show a piece of gold/silver jewellery
+(e.g. it shows a person, food, document, random object, etc.).
+Do not include any other text."""
 
 _yolo: Optional[object] = None
 
@@ -77,7 +85,11 @@ async def _gemini_classify(image_bytes: bytes) -> Optional[dict]:
 
 
 async def classify_type(image_bytes: bytes, declared_type: str = "ring") -> EvidenceItem:
-    """FR-5.1: Returns item_type evidence with confidence."""
+    """FR-5.1: Returns item_type evidence with confidence.
+
+    Check ev.payload["class"] == "non_jewellery" after calling — if true and
+    ev.confidence >= NON_JEWELLERY_THRESHOLD the assessment should be rejected.
+    """
     ev_id = f"ev_{uuid.uuid4().hex[:8]}"
 
     # ── 1. Fine-tuned YOLOv8 ─────────────────────────────────────────────────
@@ -109,12 +121,14 @@ async def classify_type(image_bytes: bytes, declared_type: str = "ring") -> Evid
         conf = float(gemini_result.get("confidence", 0.7))
         flags = gemini_result.get("visual_flags", [])
         karat_guess = gemini_result.get("apparent_karat_guess", "unknown")
-        if item_type in CLASSES or item_type == "unknown":
+
+        # Accept non_jewellery explicitly so the orchestrator can gate on it
+        if item_type in CLASSES:
             return EvidenceItem(
                 id=ev_id,
                 kind="item_type_classification",
                 payload={
-                    "class": item_type if item_type != "unknown" else declared_type,
+                    "class": item_type,
                     "source": "gemini_vision",
                     "karat_guess": karat_guess,
                     "visual_flags": flags,
@@ -122,11 +136,91 @@ async def classify_type(image_bytes: bytes, declared_type: str = "ring") -> Evid
                 },
                 confidence=conf,
             )
+        if item_type == "unknown":
+            return EvidenceItem(
+                id=ev_id,
+                kind="item_type_classification",
+                payload={
+                    "class": declared_type,
+                    "source": "gemini_vision_unknown",
+                    "karat_guess": karat_guess,
+                    "visual_flags": flags,
+                    "reasoning": gemini_result.get("reasoning", ""),
+                },
+                confidence=min(conf, 0.45),
+            )
 
-    # ── 3. Declared type fallback ─────────────────────────────────────────────
+    # ── 3. Content-based heuristic — detect non-gold colors ─────────────────
+    # If image has no metallic/warm-yellow pixels, flag as suspicious
+    non_jewellery_conf = _heuristic_non_jewellery(image_bytes)
+    if non_jewellery_conf >= NON_JEWELLERY_THRESHOLD:
+        logger.info("classifier.heuristic_non_jewellery", conf=non_jewellery_conf)
+        return EvidenceItem(
+            id=ev_id,
+            kind="item_type_classification",
+            payload={"class": "non_jewellery", "source": "color_heuristic"},
+            confidence=non_jewellery_conf,
+        )
+
+    # ── 4. Declared type fallback ─────────────────────────────────────────────
     return EvidenceItem(
         id=ev_id,
         kind="item_type_classification",
         payload={"class": declared_type, "source": "declared_fallback"},
         confidence=0.40,
     )
+
+
+def _heuristic_non_jewellery(image_bytes: bytes) -> float:
+    """Return confidence [0,1] that the image does NOT contain gold/silver jewellery.
+
+    Uses LAB colour space to detect metallic warm-yellow (gold) or neutral-bright
+    (silver/white gold) pixels. If fewer than 5% of foreground pixels have
+    metallic colour, returns elevated non-jewellery confidence.
+    """
+    try:
+        import numpy as np
+        import cv2
+
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if img is None:
+            return 0.0
+
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        L, a, b = cv2.split(lab)
+
+        L_i = L.astype(np.int32)
+        a_i = a.astype(np.int32)
+        b_i = b.astype(np.int32)
+
+        # Foreground = not near-white background
+        foreground = L_i < 235
+        fg_count = int(np.sum(foreground))
+        if fg_count < 300:
+            return 0.0
+
+        # Gold 22K ≈ LAB L≈75 a≈133 b≈183 — very yellow (high b), NOT red (low a)
+        # Skin    ≈ LAB L≈65 a≈153 b≈148 — fails because a too high
+        # Orange  ≈ LAB L≈55 a≈163 b≈168 — fails because a too high
+        gold_mask = foreground & (b_i > 158) & (a_i < 142) & (L_i > 70)
+
+        # Silver/white gold: very bright + near-neutral hue
+        silver_mask = (
+            foreground & (L_i > 175)
+            & (np.abs(a_i - 128) < 12) & (np.abs(b_i - 128) < 15)
+        )
+
+        # Specular highlights on metallic surfaces (tiny very-bright spots)
+        specular_ratio = float(np.sum(L_i > 220)) / L_i.size
+
+        metallic_ratio = (float(np.sum(gold_mask)) + float(np.sum(silver_mask))) / fg_count
+
+        if metallic_ratio >= 0.03 or specular_ratio >= 0.008:
+            return 0.0   # looks metallic
+
+        # Scale 0→0.65 as metallic pixels approach 0
+        conf = max(0.0, 0.65 * (1.0 - metallic_ratio / 0.03))
+        return round(conf, 3)
+    except Exception:
+        return 0.0

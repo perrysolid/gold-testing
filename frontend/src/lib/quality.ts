@@ -3,7 +3,9 @@ export type QualityResult = {
   bright_ok: boolean;
   sharp_ok: boolean;
   occupancy_ok: boolean;
+  jewellery_ok: boolean;
   overall_ok: boolean;
+  jewellery_reason?: string;
 };
 
 export async function checkImageQuality(blob: Blob): Promise<QualityResult> {
@@ -34,6 +36,7 @@ export async function checkImageQuality(blob: Blob): Promise<QualityResult> {
         bright_ok: avgBright >= 40 && avgBright <= 220,
         sharp_ok: true, // Laplacian needs WebGL; stub as true client-side
         occupancy_ok: occupancy >= 0.15,
+        jewellery_ok: true, // server-side check is authoritative; default true client-side
         overall_ok: avgBright >= 40 && avgBright <= 220 && occupancy >= 0.15,
       });
     };

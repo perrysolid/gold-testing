@@ -50,7 +50,7 @@ lint-fix:
 
 # ── Demo ──────────────────────────────────────────────────────────────────────
 seed:
-	cd backend && python scripts/seed_demo_data.py
+	cd backend && python3 scripts/seed_demo_data.py
 
 demo: up seed
 	@echo "Opening Aurum demo at http://localhost:5173"

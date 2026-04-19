@@ -10,7 +10,7 @@ const PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  useTranslation();
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -76,7 +76,7 @@ export default function Onboarding() {
 
         {step === "phone" && (
           <>
-            <h1 className="text-2xl font-headline text-brown text-center">Enter your mobile</h1>
+            <h1 className="text-2xl font-headline text-brown text-center">{t("onboarding.enter_mobile")}</h1>
             <input
               type="tel"
               inputMode="numeric"
@@ -87,14 +87,14 @@ export default function Onboarding() {
             />
             <button onClick={sendOtp} disabled={loading}
               className="min-touch bg-gold text-brown-dark font-semibold rounded-xl py-4 disabled:opacity-50">
-              {loading ? "Sending…" : "Send OTP"}
+              {loading ? `${t("common.loading")}` : t("onboarding.send_otp")}
             </button>
           </>
         )}
 
         {step === "otp" && (
           <>
-            <h1 className="text-2xl font-headline text-brown text-center">Enter OTP</h1>
+            <h1 className="text-2xl font-headline text-brown text-center">{t("onboarding.enter_otp")}</h1>
             <p className="text-brown/50 text-sm text-center">Sent to +91 {phone} · Demo OTP: 123456</p>
             <input
               type="text"
@@ -107,18 +107,21 @@ export default function Onboarding() {
             />
             <button onClick={verifyOtp} disabled={loading}
               className="min-touch bg-gold text-brown-dark font-semibold rounded-xl py-4 disabled:opacity-50">
-              {loading ? "Verifying…" : "Verify"}
+              {loading ? `${t("common.loading")}` : t("onboarding.continue")}
+            </button>
+            <button onClick={() => sendOtp()} className="text-brown/40 text-sm text-center underline">
+              {t("onboarding.resend")}
             </button>
           </>
         )}
 
         {step === "kyc" && (
           <>
-            <h1 className="text-2xl font-headline text-brown text-center">Quick KYC</h1>
-            <input type="text" placeholder="Full Name *" value={name}
+            <h1 className="text-2xl font-headline text-brown text-center">{t("onboarding.kyc_title")}</h1>
+            <input type="text" placeholder={t("onboarding.name_label") + " *"} value={name}
               onChange={(e) => setName(e.target.value)}
               className="border border-brown/20 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-gold" />
-            <input type="text" placeholder="PAN (optional)" value={pan}
+            <input type="text" placeholder={t("onboarding.pan_label") + " (optional)"} value={pan}
               onChange={(e) => setPan(e.target.value.toUpperCase())} maxLength={10}
               className="border border-brown/20 rounded-xl p-4 uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-gold" />
             <select value={purpose} onChange={(e) => setPurpose(e.target.value)}
@@ -129,32 +132,29 @@ export default function Onboarding() {
             </select>
             <button onClick={submitKyc}
               className="min-touch bg-gold text-brown-dark font-semibold rounded-xl py-4">
-              Continue
+              {t("onboarding.continue")}
             </button>
           </>
         )}
 
         {step === "consent" && (
           <>
-            <h1 className="text-2xl font-headline text-brown text-center">Declaration</h1>
+            <h1 className="text-2xl font-headline text-brown text-center">{t("onboarding.consent_title")}</h1>
             <div className="bg-brown/5 rounded-xl p-4 text-sm text-brown/70 leading-relaxed">
-              I declare that I am the rightful owner of the gold jewellery being assessed.
-              I consent to Aurum processing my images and data for pre-qualification purposes.
-              I understand this is an estimate only; final valuation requires branch verification as
-              per RBI Gold Loan Directions 2025.
+              {t("onboarding.consent_body")}
             </div>
             <label className="flex items-start gap-3 cursor-pointer">
               <input type="checkbox" checked={consentChecked}
                 onChange={(e) => setConsentChecked(e.target.checked)}
                 className="mt-1 w-5 h-5 rounded accent-gold" />
-              <span className="text-sm text-brown/70">I accept the above declaration</span>
+              <span className="text-sm text-brown/70">{t("onboarding.consent_agree")}</span>
             </label>
             <p className="text-xs text-brown/30 text-center">
               Signed at {new Date().toLocaleString("en-IN")}
             </p>
             <button onClick={submitConsent}
               className="min-touch bg-brown text-ivory font-semibold rounded-xl py-4">
-              Proceed to Capture
+              {t("onboarding.continue")}
             </button>
           </>
         )}
