@@ -34,10 +34,10 @@ def check_quality(image_bytes: bytes) -> QualityResult:
     occupancy = float(thresh.sum() / 255) / (thresh.shape[0] * thresh.shape[1])
 
     return QualityResult(
-        bright_ok=40.0 <= brightness <= 220.0,
+        bright_ok=40.0 <= brightness <= 240.0,
         sharp_ok=blur_score >= 100.0,
         occupancy_ok=occupancy >= 0.15,
-        overall_ok=all([40.0 <= brightness <= 220.0, blur_score >= 100.0, occupancy >= 0.15]),
+        overall_ok=all([40.0 <= brightness <= 240.0, blur_score >= 100.0, occupancy >= 0.15]),
         blur_score=round(blur_score, 1),
         brightness_mean=round(brightness, 1),
         occupancy_ratio=round(occupancy, 3),

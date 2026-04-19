@@ -5,8 +5,22 @@ import { useNavigate } from "react-router-dom";
 import QualityChip from "../components/QualityChip";
 import CameraGuide from "../components/CameraGuide";
 import { compressImage } from "../lib/compress";
-import { checkImageQuality } from "../lib/quality";
+import { checkImageQuality, QualityResult } from "../lib/quality";
 import { useCaptureStore } from "../lib/store";
+
+const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+
+async function serverQualityCheck(blob: Blob): Promise<QualityResult | null> {
+  try {
+    const form = new FormData();
+    form.append("file", blob, "capture.jpg");
+    const r = await fetch(`${BASE}/assess/quality-check`, { method: "POST", body: form });
+    if (!r.ok) return null;
+    return await r.json() as QualityResult;
+  } catch {
+    return null;
+  }
+}
 
 type CaptureStep = { key: "image_top" | "image_side" | "image_hallmark"; label: string; hint: string };
 
@@ -45,7 +59,8 @@ export default function Capture() {
     const blob = await res.blob();
     const file = new File([blob], `${step.key}.jpg`, { type: "image/jpeg" });
     const compressed = await compressImage(file);
-    const qual = await checkImageQuality(compressed);
+    // FR-2.4: server-side check preferred (Laplacian sharpness); client fallback if offline
+    const qual = (await serverQualityCheck(compressed)) ?? (await checkImageQuality(compressed));
     setQuality(qual);
 
     const url = URL.createObjectURL(compressed);

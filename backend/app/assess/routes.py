@@ -1,11 +1,12 @@
 """FR-2, FR-4, FR-7: Assessment lifecycle routes.
 
-POST /assess/start              → assessment_id + upload URLs
-POST /assess/upload/{id}/{kind} → multipart artifact upload
-POST /assess/submit             → triggers ML pipeline
-GET  /assess/{id}               → poll for result (status + decision + fusion)
-GET  /assess/                   → lender list (FR-10.1)
-GET  /assess/{id}/pdf           → pre-approval PDF (FR-11.3)
+POST /assess/start                → assessment_id + upload URLs
+POST /assess/upload/{id}/{kind}   → multipart artifact upload
+POST /assess/quality-check        → server-side image quality check (FR-2.4)
+POST /assess/submit               → triggers ML pipeline
+GET  /assess/{id}                 → poll for result (status + decision + fusion)
+GET  /assess/                     → lender list (FR-10.1)
+GET  /assess/{id}/pdf             → pre-approval PDF (FR-11.3)
 """
 from __future__ import annotations
 
@@ -55,6 +56,19 @@ async def upload_artifact(
         raise HTTPException(status_code=413, detail="File too large (max 10 MB)")
     await save_artifact(assessment_id, kind, data)
     return {"status": "ok", "kind": kind}
+
+
+@router.post("/quality-check")
+async def quality_check(
+    file: UploadFile = File(...),
+) -> dict:
+    """FR-2.4: Server-side image quality check before submission."""
+    data = await file.read()
+    if len(data) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File too large (max 10 MB)")
+    from app.vision.quality import check_quality
+    result = check_quality(data)
+    return result.model_dump()
 
 
 @router.post("/submit", response_model=dict[str, str])
