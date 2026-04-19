@@ -46,7 +46,8 @@ core = [
     "pyyaml==6.0.2",
 
     # PDF generation
-    "weasyprint==62.3",
+    "weasyprint==59.0",
+    "pydyf==0.10.0",
 
     # Image dedup
     "imagededup==0.3.3.post2",
